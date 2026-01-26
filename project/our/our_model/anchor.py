@@ -168,10 +168,28 @@ class USISFPN(BaseModule):
             self.feature_spliter = MODELS.build(feature_spliter)
 
     def forward(self, inputs):
+        # If a feature_aggregator exists, use it to produce a single tensor
         if hasattr(self, 'feature_aggregator'):
             x = self.feature_aggregator(inputs)
         else:
-            x = inputs
+            # Allow passing backbone hidden-states (list/tuple) directly.
+            # Pick the last selected hidden-state as the source to upscale.
+            if isinstance(inputs, (list, tuple)):
+                chosen = inputs[-1]
+                # backbone hidden states are [B, H, W, C] -> rearrange to [B, C, H, W]
+                chosen = einops.rearrange(chosen, 'b h w c -> b c h w')
+                # lazily create a 1x1 projection to match feature_spliter.backbone_channel
+                if not hasattr(self, 'input_proj'):
+                    in_ch = chosen.shape[1]
+                    out_ch = getattr(self, 'feature_spliter').backbone_channel if hasattr(self, 'feature_spliter') else in_ch
+                    proj = nn.Conv2d(in_ch, out_ch, 1)
+                    # register module so parameters are tracked
+                    self.add_module('input_proj', proj)
+                x = self.input_proj(chosen)
+            else:
+                # inputs is already a tensor
+                x = inputs
+
         if hasattr(self, 'feature_spliter'):
             x = self.feature_spliter(x)
         else:
