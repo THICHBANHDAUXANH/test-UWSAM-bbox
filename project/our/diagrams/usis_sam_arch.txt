@@ -1,0 +1,63 @@
+USIS-SAM Architecture
+
+Image
+  |
+  v
+[USISSamVisionEncoder] -- (image embeddings) --> [USISSamPositionalEmbedding]
+  |
+  v
+[USISFeatureAggregator / USISFPN]  -- multi-scale features --> RPN
+  |
+  v
+RPN -> proposals
+  |
+  v
+RoIAlign
+  |
+  +---------------------------+
+  |                           |
+  v                           v
+[bbox head]              [mask head: USISPrompterAnchorMaskHead]
+                              |
+                              v
+                       RoI features (per-ROI)
+                              |
+                              v
+                         point_emb (conv+MLP)
+                              |
+                              v
+                      sparse_prompt_embeddings
+                              |
+                              v
+            +-----------------------------------------+
+            |                                         |
+            v                                         v
+    no_mask_embed (from `USISSamPromptEncoder`)   image_embeddings
+    (dense constant) -> reshape & expand         + image_positional_embeddings
+            |                                         |
+            +-------------------+---------------------+
+                                |
+                                v
+                         [USISSamMaskDecoder]
+                (input: image_embeddings,
+                        image_positional_embeddings,
+                        sparse_prompt_embeddings,
+                        dense_prompt_embeddings)
+                                |
+                                v
+                         low-res masks + iou preds
+                                |
+                                v
+                      reshape / upsample -> final masks
+
+Key code locations:
+- `project/our/configs/anchor_net.py`: mask_head config -> `USISPrompterAnchorMaskHead`
+- `project/our/our_model/anchor.py`: `USISPrompterAnchorMaskHead` init and forward
+  - `self.no_mask_embed` extracted from `USISSamPromptEncoder` (dense prompt)
+  - `dense_embeddings` created by reshape/expand of `no_mask_embed`
+  - `self.mask_decoder(...)` called with image embeddings + pos emb + sparse + dense prompts
+- `project/our/our_model/common.py`: SAM wrappers `USISSamPromptEncoder`, `USISSamMaskDecoder`, `USISSamVisionEncoder`
+
+Generated files:
+- ASCII diagram: project/our/diagrams/usis_sam_arch.txt
+- PNG (will be created next): project/our/diagrams/usis_sam_arch.png
