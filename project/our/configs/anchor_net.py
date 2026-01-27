@@ -129,7 +129,25 @@ model = dict(
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
             loss_bbox=dict(type='SmoothL1Loss', loss_weight=1.0)),
-        # Mask head disabled for bbox-only training
+        mask_roi_extractor=dict(
+            type='SingleRoIExtractor',
+            roi_layer=dict(type='RoIAlign', output_size=14, sampling_ratio=0),
+            out_channels=256,
+            featmap_strides=[4, 8, 16]),
+        mask_head=dict(
+            type='USISPrompterAnchorMaskHead',
+            mask_decoder=dict(
+                type='USISSamMaskDecoder',
+                hf_pretrain_name=sam_pretrain_name,
+                init_cfg=dict(type='Pretrained', checkpoint=sam_pretrain_ckpt_path)),
+            in_channels=256,
+            roi_feat_size=14,
+            per_pointset_point=pointset_point_num,
+            with_sincos=True,
+            multimask_output=False,
+            class_agnostic=True,
+            loss_mask=dict(type='CrossEntropyLoss', use_mask=True, loss_weight=1.0)
+        )
     ),
     # model training and testing settings
     train_cfg=dict(
