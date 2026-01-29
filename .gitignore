@@ -119,3 +119,10 @@ work_dirs/
 *.pth
 *.py~
 *.sh~
+pretrain/
+*.safetensors
+*.pth
+*.pt
+*.bin
+*.h5
+*.ckpt
