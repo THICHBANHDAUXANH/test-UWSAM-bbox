@@ -8,7 +8,7 @@ from mmengine.dist import is_main_process
 
 from peft import get_peft_config, get_peft_model
 
-from transformers import SamConfig
+from transformers import SamConfig, SamModel
 from transformers.models.sam.modeling_sam import (
     SamMaskDecoder, SamPositionalEmbedding, SamPromptEncoder
 )
@@ -144,6 +144,20 @@ class USISSamPositionalEmbedding(SamPositionalEmbedding, BaseModule):
         if extra_config is not None:
             sam_config.update(extra_config)
         self.shared_image_embedding = SamPositionalEmbedding(sam_config)
+        
+        # Load pretrained weights from HuggingFace
+        if init_cfg is None:  # Only auto-load if no init_cfg provided
+            try:
+                sam_model = SamModel.from_pretrained(hf_pretrain_name)
+                self.shared_image_embedding.load_state_dict(
+                    sam_model.shared_image_embedding.state_dict(), strict=True
+                )
+                del sam_model
+                if is_main_process():
+                    print(f"[USISSamPositionalEmbedding] Loaded pretrained weights from {hf_pretrain_name}")
+            except Exception as e:
+                if is_main_process():
+                    print(f"[USISSamPositionalEmbedding] Warning: Could not load pretrained weights: {e}")
 
     def forward(self, *args, **kwargs):
         return self.shared_image_embedding(*args, **kwargs)
@@ -162,6 +176,23 @@ class USISSamPromptEncoder(SamPromptEncoder, BaseModule):
         if extra_config is not None:
             sam_config.update(extra_config)
         self.prompt_encoder = SamPromptEncoder(sam_config, shared_patch_embedding=None)
+        
+        # Load pretrained weights from HuggingFace
+        if init_cfg is None:  # Only auto-load if no init_cfg provided
+            try:
+                sam_model = SamModel.from_pretrained(hf_pretrain_name)
+                # Load only the relevant weights (excluding shared_patch_embedding which is None)
+                prompt_state = sam_model.prompt_encoder.state_dict()
+                # Filter out shared_patch_embedding keys
+                prompt_state = {k: v for k, v in prompt_state.items() 
+                               if not k.startswith('shared_patch_embedding')}
+                self.prompt_encoder.load_state_dict(prompt_state, strict=False)
+                del sam_model
+                if is_main_process():
+                    print(f"[USISSamPromptEncoder] Loaded pretrained weights from {hf_pretrain_name}")
+            except Exception as e:
+                if is_main_process():
+                    print(f"[USISSamPromptEncoder] Warning: Could not load pretrained weights: {e}")
 
     def forward(self, *args, **kwargs):
         return self.prompt_encoder(*args, **kwargs)
@@ -230,6 +261,20 @@ class USISSamMaskDecoder(SamMaskDecoder, BaseModule):
         if extra_config is not None:
             sam_config.update(extra_config)
         self.mask_decoder = SamMaskDecoder(sam_config)
+        
+        # Load pretrained weights from HuggingFace
+        if init_cfg is None:  # Only auto-load if no init_cfg provided
+            try:
+                sam_model = SamModel.from_pretrained(hf_pretrain_name)
+                self.mask_decoder.load_state_dict(
+                    sam_model.mask_decoder.state_dict(), strict=True
+                )
+                del sam_model
+                if is_main_process():
+                    print(f"[USISSamMaskDecoder] Loaded pretrained weights from {hf_pretrain_name}")
+            except Exception as e:
+                if is_main_process():
+                    print(f"[USISSamMaskDecoder] Warning: Could not load pretrained weights: {e}")
 
     def forward(self, *args, **kwargs):
         return self.mask_decoder(*args, **kwargs)

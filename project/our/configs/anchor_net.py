@@ -1,7 +1,7 @@
 ## ---------------------- DEFAULT_SETTING ----------------------
 
 default_scope = 'mmdet'
-custom_imports = dict(imports=['project.our.our_model', 'uwsam_teacher'], allow_failed_imports=False)
+custom_imports = dict(imports=['project.our.our_model'], allow_failed_imports=False)
 
 default_hooks = dict(
     timer=dict(type='IterTimerHook'),

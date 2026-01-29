@@ -85,10 +85,17 @@ class USISAnchor(MaskRCNN):
         elif isinstance(vision_outputs, tuple):
             image_embeddings = vision_outputs[-1]
             vision_hidden_states = vision_outputs
+            # If backbone returns channel-last format [B, H, W, C], convert to channel-first [B, C, H, W]
+            # SAM encoder outputs have C=256, and H=W=64 for 1024x1024 input
+            # So if last dim is 256 and middle dims are smaller (H, W), it's channel-last
+            if image_embeddings.dim() == 4 and image_embeddings.shape[-1] == 256 and image_embeddings.shape[1] != 256:
+                image_embeddings = image_embeddings.permute(0, 3, 1, 2).contiguous()
         else:
             raise NotImplementedError
 
-        image_positional_embeddings = self.get_image_wide_positional_embeddings(size=image_embeddings.shape[-1])
+        # image_embeddings should be [B, C, H, W], get spatial size from H dimension
+        spatial_size = image_embeddings.shape[2]  # H dimension
+        image_positional_embeddings = self.get_image_wide_positional_embeddings(size=spatial_size)
         # repeat with batch size
         batch_size = image_embeddings.shape[0]
         image_positional_embeddings = image_positional_embeddings.repeat(batch_size, 1, 1, 1)
@@ -185,7 +192,8 @@ class USISFPN(BaseModule):
                     proj = nn.Conv2d(in_ch, out_ch, 1)
                     # register module so parameters are tracked
                     self.add_module('input_proj', proj)
-                x = self.input_proj(chosen)
+                # Ensure input_proj is on the same device as input
+                x = self.input_proj.to(chosen.device)(chosen)
             else:
                 # inputs is already a tensor
                 x = inputs
