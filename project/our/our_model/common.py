@@ -10,9 +10,8 @@ from peft import get_peft_config, get_peft_model
 
 from transformers import SamConfig
 from transformers.models.sam.modeling_sam import (
-    SamMaskDecoder, SamPositionalEmbedding, SamPromptEncoder
+    SamMaskDecoder, SamPositionalEmbedding, SamPromptEncoder, SamVisionEncoder
 )
-from .sam import UAViTEncoder
 
 
 class ColorAttentionAdapter(nn.Module):
@@ -144,6 +143,17 @@ class USISSamPositionalEmbedding(SamPositionalEmbedding, BaseModule):
         if extra_config is not None:
             sam_config.update(extra_config)
         self.shared_image_embedding = SamPositionalEmbedding(sam_config)
+        
+        # Load pretrained weights from HuggingFace Hub
+        checkpoint_path = init_cfg.get('checkpoint') if init_cfg is not None else None
+        if checkpoint_path is None:
+            from transformers import SamModel
+            if is_main_process():
+                print(f'Loading pretrained SAM positional embedding from HuggingFace: {hf_pretrain_name}')
+            sam_model = SamModel.from_pretrained(hf_pretrain_name)
+            hf_state_dict = sam_model.shared_image_embedding.state_dict()
+            self.shared_image_embedding.load_state_dict(hf_state_dict, strict=False)
+            del sam_model
 
     def forward(self, *args, **kwargs):
         return self.shared_image_embedding(*args, **kwargs)
@@ -180,15 +190,30 @@ class USISSamVisionEncoder(BaseModule):
         sam_config = SamConfig.from_pretrained(hf_pretrain_name).vision_config
         if extra_config is not None:
             sam_config.update(extra_config)
-        vision_encoder = UAViTEncoder(sam_config)
-        # load checkpoint
-        if init_cfg is not None:
+        
+        # load checkpoint - support both local checkpoint and HuggingFace Hub
+        checkpoint_path = init_cfg.get('checkpoint') if init_cfg is not None else None
+        if checkpoint_path is not None:
+            # Load from local checkpoint file with custom encoder
+            from .sam import UAViTEncoder
+            vision_encoder = UAViTEncoder(sam_config)
             from mmengine.runner.checkpoint import load_checkpoint
             load_checkpoint(
                 vision_encoder,
-                init_cfg.get('checkpoint'),
+                checkpoint_path,
                 map_location='cpu',
                 revise_keys=[(r'^module\.', ''), (r'^vision_encoder\.', '')])
+        else:
+            # Load regular SamVisionEncoder directly from HuggingFace Hub
+            from transformers import SamModel
+            if is_main_process():
+                print(f'Loading pretrained SAM vision encoder from HuggingFace: {hf_pretrain_name}')
+            sam_model = SamModel.from_pretrained(hf_pretrain_name)
+            # Use the regular SamVisionEncoder with pretrained weights
+            vision_encoder = sam_model.vision_encoder
+            if is_main_process():
+                print(f'Using regular HuggingFace SamVisionEncoder (not custom UAViTEncoder)')
+            del sam_model.mask_decoder, sam_model.prompt_encoder  # Free memory
 
         if peft_config is not None and isinstance(peft_config, dict):
             config = {
@@ -230,6 +255,17 @@ class USISSamMaskDecoder(SamMaskDecoder, BaseModule):
         if extra_config is not None:
             sam_config.update(extra_config)
         self.mask_decoder = SamMaskDecoder(sam_config)
+        
+        # Load pretrained weights from HuggingFace Hub
+        checkpoint_path = init_cfg.get('checkpoint') if init_cfg is not None else None
+        if checkpoint_path is None:
+            from transformers import SamModel
+            if is_main_process():
+                print(f'Loading pretrained SAM mask decoder from HuggingFace: {hf_pretrain_name}')
+            sam_model = SamModel.from_pretrained(hf_pretrain_name)
+            hf_state_dict = sam_model.mask_decoder.state_dict()
+            self.mask_decoder.load_state_dict(hf_state_dict, strict=False)
+            del sam_model
 
     def forward(self, *args, **kwargs):
         return self.mask_decoder(*args, **kwargs)

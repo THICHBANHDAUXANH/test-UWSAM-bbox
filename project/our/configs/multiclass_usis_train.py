@@ -30,7 +30,18 @@ model = dict(
     data_preprocessor=data_preprocessor,
     decoder_freeze=True,
     shared_image_embedding=dict(extra_config=dict(image_size=crop_size[0])),
-    backbone=dict(extra_config=dict(image_size=crop_size[0])),
+    backbone=dict(
+        extra_config=dict(image_size=crop_size[0]),
+        peft_config=dict(
+            peft_type="LORA",
+            r=16,
+            target_modules=["qkv"],
+            lora_alpha=32,
+            lora_dropout=0.05,
+            bias="none",
+        ),
+    ),
+    adapter=None,
     roi_head=dict(bbox_head=dict(num_classes=num_classes)),
     train_cfg=dict(rcnn=dict(mask_size=crop_size))
 )
@@ -158,7 +169,7 @@ test_evaluator = dict(
 ## ---------------------- Optim ----------------------
 
 max_epochs = 24
-base_lr = 0.0001
+base_lr = 0.0002  # 2e-4
 
 train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=max_epochs, val_interval=3)
 val_cfg = dict(type='ValLoop')
