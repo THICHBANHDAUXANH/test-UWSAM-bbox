@@ -53,9 +53,9 @@ data_preprocessor = dict(
 num_classes = 7
 pointset_point_num = 5  # per pointset point
 
-# sam base model
-sam_pretrain_name = "/root/code/pretrain/sam-vit-huge"
-sam_pretrain_ckpt_path = "/root/code/pretrain/sam-vit-huge/pytorch_model.bin"
+# sam base model - using HuggingFace Hub directly
+sam_pretrain_name = "facebook/sam-vit-huge"
+sam_pretrain_ckpt_path = None  # Load from HuggingFace Hub
 
 # model settings
 model = dict(
