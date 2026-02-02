@@ -73,6 +73,28 @@ class UAViTBlock(nn.Module):
 
 
 @MODELS.register_module()
+class LastLayerColorAdapter(BaseModule):
+    """Color attention adapter applied on the final image embedding (after neck, 256-dim).
+    
+    This adapter applies channel-wise attention to the output of the vision encoder's neck,
+    which is already projected to 256 dimensions.
+    """
+    def __init__(self, embed_dim=256, mlp_ratio=0.25, init_cfg=None):
+        super().__init__(init_cfg=init_cfg)
+        self.color_adapter = ColorAttentionAdapter(embed_dim, mlp_ratio=mlp_ratio, act_layer=nn.GELU, change=False)
+    
+    def forward(self, x):
+        """Apply color attention to image embeddings.
+        
+        Args:
+            x: Tensor of shape (B, C, H, W) where C=256
+        Returns:
+            Tensor of same shape with channel-wise attention applied
+        """
+        return x * self.color_adapter(x)
+
+
+@MODELS.register_module()
 class UAViTAdapters(BaseModule):
 
     def __init__(self,

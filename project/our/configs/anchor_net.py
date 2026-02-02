@@ -72,25 +72,28 @@ model = dict(
         hf_pretrain_name=sam_pretrain_name,
         extra_config=dict(output_hidden_states=True),
         init_cfg=dict(type='Pretrained', checkpoint=sam_pretrain_ckpt_path),
-        peft_config=None,
+        peft_config=dict(
+            peft_type="LORA",
+            r=16,
+            target_modules=["qkv"],
+            lora_alpha=32,
+            lora_dropout=0.05,
+        ),
     ),
+    # Only apply color adapter at last ViT layer (layer 31 for ViT-Huge)
     adapter=dict(
-        type='UAViTAdapters', adapter_layer=range(8, 33, 2), embed_dim=1280
+        type='UAViTAdapters',
+        adapter_layer=[31],  # Only last layer
+        embed_dim=1280,
+        use_color_adapter=True,
+        use_space_adapter=False,
+        use_mlp_adapter=False,
     ),
-    #### 'adapter_config' should be changed when using different pretrain model
+    last_layer_adapter=None,
     neck=dict(
         type='USISFPN',
-        feature_aggregator=dict(
-            type='USISFeatureAggregator',
-            in_channels=[1280] * (32 + 1),
-            #### 'in_channels' should be changed when using different pretrain model
-            # base:[768] * (12 + 1), large:[1024] * (24 + 1), huge:[1280] * (32 + 1)
-            out_channels=256,
-            hidden_channels=32,
-            select_layers=range(8, 33, 2),
-            #### 'select_layers' should be changed when using different pretrain model
-            # base: range(1, 13, 2), large: range(1, 25, 2), huge: range(1, 33, 2)
-        ),
+        # Removed feature_aggregator - directly use 256-dim image embeddings
+        feature_aggregator=None,
         feature_spliter=dict(
             type='USISSimpleFPNHead',
             backbone_channel=256,

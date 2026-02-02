@@ -4,12 +4,12 @@ from .anchor import (
 
 )
 from .common import (
-    LN2d, UAViTAdapters, USISSamMaskDecoder, USISSamVisionEncoder, USISSamPositionalEmbedding, USISSamPromptEncoder
+    LN2d, UAViTAdapters, LastLayerColorAdapter, USISSamMaskDecoder, USISSamVisionEncoder, USISSamPositionalEmbedding, USISSamPromptEncoder
 )
 from .datasets import MultiClassUSIS10KInsSegDataset, ForegroundUSIS10KInsSegDataset
 
 __all__ = [
     'USISAnchor', 'USISFPN', 'USISPrompterAnchorRoIPromptHead',
     'USISSimpleFPNHead', 'USISFeatureAggregator', 'USISPrompterAnchorMaskHead', 'LN2d', 'UAViTAdapters', 
-    'USISSamMaskDecoder', 'USISSamVisionEncoder', 'USISSamPositionalEmbedding', 'USISSamPromptEncoder'
+    'LastLayerColorAdapter', 'USISSamMaskDecoder', 'USISSamVisionEncoder', 'USISSamPositionalEmbedding', 'USISSamPromptEncoder'
 ]

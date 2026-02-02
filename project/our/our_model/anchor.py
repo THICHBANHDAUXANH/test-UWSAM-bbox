@@ -93,7 +93,8 @@ class USISAnchor(MaskRCNN):
         batch_size = image_embeddings.shape[0]
         image_positional_embeddings = image_positional_embeddings.repeat(batch_size, 1, 1, 1)
 
-        x = self.neck(vision_hidden_states)
+        # Pass image_embeddings (256-dim after neck) directly to FPN
+        x = self.neck(image_embeddings)
         return x, image_embeddings, image_positional_embeddings
 
     def loss(self, batch_inputs: Tensor,
