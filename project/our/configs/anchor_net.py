@@ -80,16 +80,13 @@ model = dict(
             lora_dropout=0.05,
         ),
     ),
-    # Only apply color adapter at last ViT layer (layer 31 for ViT-Huge)
-    adapter=dict(
-        type='UAViTAdapters',
-        adapter_layer=[31],  # Only last layer
-        embed_dim=1280,
-        use_color_adapter=True,
-        use_space_adapter=False,
-        use_mlp_adapter=False,
+    # Apply color adapter on SAM image embeddings (post SamVisionNeck, C=256)
+    adapter=None,
+    last_layer_adapter=dict(
+        type='LastLayerColorAdapter',
+        embed_dim=256,
+        mlp_ratio=0.25,
     ),
-    last_layer_adapter=None,
     neck=dict(
         type='USISFPN',
         # Removed feature_aggregator - directly use 256-dim image embeddings

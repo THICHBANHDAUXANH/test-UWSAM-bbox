@@ -31,6 +31,7 @@ class USISAnchor(MaskRCNN):
             self,
             shared_image_embedding,
             adapter=None,
+            last_layer_adapter=None,
             decoder_freeze=True,
             *args,
             **kwargs):
@@ -41,6 +42,10 @@ class USISAnchor(MaskRCNN):
         self.adapter = False
         if adapter is not None:
             self.adapter = MODELS.build(adapter)
+
+        self.last_layer_adapter = None
+        if last_layer_adapter is not None:
+            self.last_layer_adapter = MODELS.build(last_layer_adapter)
 
         self.decoder_freeze = decoder_freeze
         self.frozen_modules = []
@@ -87,6 +92,9 @@ class USISAnchor(MaskRCNN):
             vision_hidden_states = vision_outputs
         else:
             raise NotImplementedError
+
+        if self.last_layer_adapter is not None:
+            image_embeddings = self.last_layer_adapter(image_embeddings)
 
         image_positional_embeddings = self.get_image_wide_positional_embeddings(size=image_embeddings.shape[-1])
         # repeat with batch size

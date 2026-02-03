@@ -1,0 +1,163 @@
+﻿======================================================================
+KEY MISMATCH TEST: segment-anything vs HuggingFace
+======================================================================
+
+[Step 1] Downloading segment-anything checkpoint...
+  Checkpoint already exists: sam_vit_h_4b8939.pth
+
+[Step 2] Loading segment-anything checkpoint...
+  Total keys: 594
+  Image encoder keys: 457
+
+  Sample segment-anything keys:
+    - image_encoder.neck.0.weight
+    - image_encoder.neck.1.weight
+    - image_encoder.neck.1.bias
+    - image_encoder.neck.2.weight
+    - image_encoder.neck.3.weight
+    - image_encoder.neck.3.bias
+    - image_encoder.patch_embed.proj.weight
+    - image_encoder.patch_embed.proj.bias
+    - image_encoder.blocks.0.norm1.weight
+    - image_encoder.blocks.0.norm1.bias
+
+[Step 3] Loading HuggingFace SAM...
+  HuggingFace vision encoder keys: 457
+
+  Sample HuggingFace keys:
+    - pos_embed
+    - patch_embed.projection.weight
+    - patch_embed.projection.bias
+    - layers.0.layer_norm1.weight
+    - layers.0.layer_norm1.bias
+    - layers.0.attn.rel_pos_h
+    - layers.0.attn.rel_pos_w
+    - layers.0.attn.qkv.weight
+    - layers.0.attn.qkv.bias
+    - layers.0.attn.proj.weight
+
+[Step 4] KEY FORMAT COMPARISON:
+======================================================================
+
+  Common keys: 1
+  Only in segment-anything: 456
+  Only in HuggingFace: 456
+
+  Keys ONLY in segment-anything (first 20):
+    - blocks.8.attn.proj.weight
+    - blocks.11.mlp.lin2.weight
+    - blocks.11.norm2.bias
+    - blocks.3.mlp.lin2.weight
+    - blocks.4.norm1.weight
+    - blocks.29.attn.qkv.weight
+    - blocks.5.attn.rel_pos_h
+    - blocks.1.norm1.weight
+    - blocks.10.attn.rel_pos_h
+    - blocks.16.attn.proj.weight
+    - blocks.13.mlp.lin1.weight
+    - blocks.15.attn.qkv.bias
+    - blocks.6.mlp.lin1.bias
+    - blocks.10.attn.proj.weight
+    - blocks.18.attn.rel_pos_w
+    - blocks.25.mlp.lin1.weight
+    - neck.1.bias
+    - blocks.24.norm1.bias
+    - blocks.14.attn.qkv.bias
+    - blocks.27.norm1.bias
+
+  Keys ONLY in HuggingFace (first 20):
+    - layers.27.attn.proj.bias
+    - layers.23.attn.rel_pos_h
+    - layers.10.layer_norm1.bias
+    - patch_embed.projection.weight
+    - layers.13.attn.qkv.bias
+    - layers.18.mlp.lin2.weight
+    - patch_embed.projection.bias
+    - layers.30.mlp.lin2.bias
+    - layers.3.mlp.lin2.weight
+    - layers.8.layer_norm2.weight
+    - layers.8.attn.qkv.bias
+    - layers.23.attn.qkv.weight
+    - layers.25.layer_norm1.weight
+    - layers.27.mlp.lin1.weight
+    - layers.18.mlp.lin1.weight
+    - layers.16.layer_norm1.weight
+    - layers.4.mlp.lin2.bias
+    - layers.2.attn.qkv.bias
+    - layers.20.attn.proj.bias
+    - layers.23.mlp.lin1.bias
+
+[Step 5] KEY NAMING DIFFERENCES:
+======================================================================
+
+  segment-anything format     ->  HuggingFace format
+  -------------------------       ------------------
+  blocks.0.norm1.weight       ->  layers.0.layer_norm1.weight
+  blocks.0.attn.qkv.weight    ->  layers.0.attn.qkv.weight
+  patch_embed.proj.weight     ->  patch_embed.projection.weight
+  neck.0.weight               ->  neck.conv1.weight
+    
+
+[Step 6] TESTING: Load segment-anything into HuggingFace model...
+======================================================================
+
+  Missing keys (in HF model but not in checkpoint): 456
+  Unexpected keys (in checkpoint but not in HF model): 456
+
+  Missing keys (first 20):
+    - patch_embed.projection.weight
+    - patch_embed.projection.bias
+    - layers.0.layer_norm1.weight
+    - layers.0.layer_norm1.bias
+    - layers.0.attn.rel_pos_h
+    - layers.0.attn.rel_pos_w
+    - layers.0.attn.qkv.weight
+    - layers.0.attn.qkv.bias
+    - layers.0.attn.proj.weight
+    - layers.0.attn.proj.bias
+    - layers.0.layer_norm2.weight
+    - layers.0.layer_norm2.bias
+    - layers.0.mlp.lin1.weight
+    - layers.0.mlp.lin1.bias
+    - layers.0.mlp.lin2.weight
+    - layers.0.mlp.lin2.bias
+    - layers.1.layer_norm1.weight
+    - layers.1.layer_norm1.bias
+    - layers.1.attn.rel_pos_h
+    - layers.1.attn.rel_pos_w
+
+  Unexpected keys (first 20):
+    - blocks.0.norm1.weight
+    - blocks.0.norm1.bias
+    - blocks.0.attn.rel_pos_h
+    - blocks.0.attn.rel_pos_w
+    - blocks.0.attn.qkv.weight
+    - blocks.0.attn.qkv.bias
+    - blocks.0.attn.proj.weight
+    - blocks.0.attn.proj.bias
+    - blocks.0.norm2.weight
+    - blocks.0.norm2.bias
+    - blocks.0.mlp.lin1.weight
+    - blocks.0.mlp.lin1.bias
+    - blocks.0.mlp.lin2.weight
+    - blocks.0.mlp.lin2.bias
+    - blocks.1.norm1.weight
+    - blocks.1.norm1.bias
+    - blocks.1.attn.rel_pos_h
+    - blocks.1.attn.rel_pos_w
+    - blocks.1.attn.qkv.weight
+    - blocks.1.attn.qkv.bias
+
+======================================================================
+SUMMARY
+======================================================================
+
+  RESULT: MISMATCH DETECTED!
+  
+  segment-anything checkpoint CANNOT be directly loaded into HuggingFace model
+  because the key names are different.
+  
+  This is why we use HuggingFace's from_pretrained() instead of loading
+  the checkpoint manually - HuggingFace handles the key conversion.
+        
+======================================================================
