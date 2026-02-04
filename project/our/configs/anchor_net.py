@@ -50,12 +50,12 @@ data_preprocessor = dict(
     batch_augments=batch_augments
 )
 
-num_classes = 7
+num_classes = 10  # UIIS10K: fish, reptiles, arthropoda, corals, mollusk, plants, ruins, garbage, human, robots
 pointset_point_num = 5  # per pointset point
 
-# sam base model - using HuggingFace Hub directly
-sam_pretrain_name = "facebook/sam-vit-huge"
-sam_pretrain_ckpt_path = None  # Load from HuggingFace Hub
+# SAM ViT-Base model - using local pretrain checkpoint
+sam_pretrain_name = "/home/duy-anh/projects/test-UWSAM-bbox/pretrain/sam-vit-base"
+sam_pretrain_ckpt_path = "/home/duy-anh/projects/test-UWSAM-bbox/pretrain/sam-vit-base/pytorch_model.bin"
 
 # model settings
 model = dict(
@@ -212,4 +212,114 @@ model = dict(
             mask_thr_binary=0.5)
     )
 )
+
+## ---------------------- DATASET ----------------------
+
+data_root = '/home/duy-anh/projects/uiis10k-baselines/datasets/uiis10k/UIIS10K'
+
+metainfo = dict(
+    classes=(
+        'fish',
+        'reptiles',
+        'arthropoda',
+        'corals',
+        'mollusk',
+        'plants',
+        'ruins',
+        'garbage',
+        'human',
+        'robots',
+    )
+)
+
+train_pipeline = [
+    dict(type='LoadImageFromFile', backend_args=None),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(type='Resize', scale=crop_size, keep_ratio=False),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='PackDetInputs'),
+]
+
+test_pipeline = [
+    dict(type='LoadImageFromFile', backend_args=None),
+    dict(type='Resize', scale=crop_size, keep_ratio=False),
+    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(
+        type='PackDetInputs',
+        meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape', 'scale_factor')),
+]
+
+train_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    sampler=dict(type='DefaultSampler', shuffle=True),
+    batch_sampler=dict(type='AspectRatioBatchSampler'),
+    dataset=dict(
+        type='CocoDataset',
+        data_root=data_root,
+        metainfo=metainfo,
+        ann_file='annotations/train.json',
+        data_prefix=dict(img='img/train/'),
+        filter_cfg=dict(filter_empty_gt=False, min_size=0),
+        pipeline=train_pipeline,
+    )
+)
+
+val_dataloader = dict(
+    batch_size=1,
+    num_workers=2,
+    persistent_workers=True,
+    drop_last=False,
+    sampler=dict(type='DefaultSampler', shuffle=False),
+    dataset=dict(
+        type='CocoDataset',
+        data_root=data_root,
+        metainfo=metainfo,
+        ann_file='annotations/test.json',
+        data_prefix=dict(img='img/test/'),
+        test_mode=True,
+        pipeline=test_pipeline,
+    )
+)
+
+test_dataloader = val_dataloader
+
+val_evaluator = dict(
+    type='CocoMetric',
+    ann_file=f'{data_root}/annotations/test.json',
+    metric=['bbox', 'segm'],
+    format_only=False,
+)
+
+test_evaluator = val_evaluator
+
+## ---------------------- TRAINING SCHEDULE ----------------------
+
+train_cfg = dict(type='EpochBasedTrainLoop', max_epochs=4, val_interval=1)
+val_cfg = dict(type='ValLoop')
+test_cfg = dict(type='TestLoop')
+
+optim_wrapper = dict(
+    type='OptimWrapper',
+    optimizer=dict(type='AdamW', lr=1e-4, weight_decay=0.05),
+)
+
+param_scheduler = [
+    dict(
+        type='LinearLR',
+        start_factor=0.001,
+        by_epoch=False,
+        begin=0,
+        end=500),
+    dict(
+        type='MultiStepLR',
+        begin=0,
+        end=24,
+        by_epoch=True,
+        milestones=[16, 22],
+        gamma=0.1),
+]
+
+auto_scale_lr = dict(enable=False, base_batch_size=16)
 
