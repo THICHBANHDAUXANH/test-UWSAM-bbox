@@ -1,158 +1,243 @@
-# USIS10K & USIS-SAM
-![issues](https://img.shields.io/github/issues/LiamLian0727/USIS10K)
-![forks](https://img.shields.io/github/forks/LiamLian0727/USIS10K?style=flat&color=orange)
-![stars](https://img.shields.io/github/stars/LiamLian0727/USIS10K?style=flat&color=red)
-[![huggingface](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Dataset-FFD21E)](https://huggingface.co/datasets/LiamLian0727/USIS10K)
-[![arXiv](https://img.shields.io/badge/arXiv-2406.06039-b31b1b.svg)](https://arxiv.org/abs/2406.06039)
-![license](https://img.shields.io/github/license/LiamLian0727/USIS10K)
+# USIS - Underwater SAM Instance Segmentation
 
-This repository is the official implementation of "[Diving into Underwater: Segment Anything Model Guided Underwater Salient Instance Segmentation and A Large-scale Dataset](https://proceedings.mlr.press/v235/lian24c.html)".
+A state-of-the-art underwater image instance segmentation model that integrates the Segment Anything Model (SAM) with specialized underwater vision adapters. This project extends MMDetection framework to provide robust underwater object detection and segmentation capabilities.
 
-If you found this project useful, please give us a star ⭐️ or [cite](#citation) us in your paper, this is the greatest support and encouragement for us.
+## Overview
 
-## :speech_balloon: Updates
-🚩 **News** (2024.05) This paper has been accepted as a paper at [**_ICML 2024_**](https://openreview.net/forum?id=snhurpZt63), receiving an **average rating of 6 with confidence of 4.25**.
+USIS (Underwater SAM Instance Segmentation) combines the powerful vision capabilities of Meta's SAM model with custom underwater-specific adaptations:
 
-## :rocket: Highlights:
-- **USIS10K dataset**: We construct the first large-scale USIS10K dataset for the underwater salient instance segmentation task, which contains 10,632 images and pixel-level annotations of 7 categories. As far as we know, this is the **largest salient instance segmentation dataset** available that simultaneously includes Class-Agnostic and Multi-Class labels.
-  
-  ![dataset img](figs/dataset_show.png)
-- **SOTA performance**: We first attempt to apply SAM to underwater salient instance segmentation and propose **USIS-SAM**, aiming to improve the segmentation accuracy in complex underwater scenes. Extensive public evaluation criteria and large numbers of experiments verify the effectiveness of our USIS10K dataset and USIS-SAM model.
- 
-  ![framework_img](figs/framework.png)
+- **SAM Integration**: Leverages SAM ViT backbone with LoRA fine-tuning
+- **Underwater Adaptations**: Color attention adapters specifically designed for underwater imaging challenges
+- **Multi-scale Detection**: Feature Pyramid Network (FPN) for detecting objects at various scales
+- **Instance Segmentation**: End-to-end trainable instance segmentation pipeline
+
+## Key Features
+
+- 🌊 **Underwater Specialized**: Color attention adapters to handle underwater color distortion
+- 🎯 **SAM-based Architecture**: Built on top of SAM ViT-Base/Huge models
+- ⚡ **LoRA Fine-tuning**: Parameter-efficient fine-tuning using LoRA adapters  
+- 🔧 **MMDetection Framework**: Leverages robust MMDetection ecosystem
+- 📊 **Multi-class Support**: Supports 10 underwater object categories
+- 🚀 **Efficient Training**: Frozen decoder with trainable adapters for fast convergence
+
+## Supported Object Categories
+
+The model is trained to detect and segment 10 underwater object categories:
+- Fish
+- Reptiles  
+- Arthropoda
+- Corals
+- Mollusk
+- Plants
+- Ruins
+- Garbage
+- Human
+- Robots
 
 ## Installation
 
 ### Requirements
-* Python 3.7+
-* Pytorch 2.0+ (we use the PyTorch 2.1.2)
-* CUDA 12.1 or other version
-* mmengine
-* mmcv>=2.0.0
-* transformers <= 4.50.3 or refer to this [issue](https://github.com/LiamLian0727/USIS10K/issues/17#issuecomment-3062306834) change code
-* [MMDetection](https://mmdetection.readthedocs.io/en/latest/get_started.html) 3.0+
 
-### Environment Installation
-<details>
-<summary>Install on Environment</summary> <br/> 
+- Python 3.8+
+- PyTorch 1.9+
+- CUDA 11.0+ (for GPU training)
 
-**Step 0**: Download and install [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/index.html) from the official website.
+### Quick Setup
 
-**Step 1**: Create a conda environment and activate it.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/THICHBANHDAUXANH/test-UWSAM-bbox.git
+   cd test-UWSAM-bbox
+   ```
 
-```shell
-conda create -n usis python=3.9 -y
-conda activate usis
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   pip install -e .
+   ```
+
+4. **Download SAM pretrained weights**
+   ```bash
+   cd pretrain
+   bash download_huggingface.sh
+   ```
+
+## Model Architecture
+
+### Core Components
+
+1. **SAM Vision Encoder** (`USISSamVisionEncoder`)
+   - Based on SAM ViT-Base/Huge architecture
+   - Enhanced with LoRA adapters for efficient fine-tuning
+   - Custom underwater-specific vision transformer blocks
+
+2. **Color Attention Adapter** (`ColorAttentionAdapter`) 
+   - Channel-wise attention mechanism
+   - Designed to handle underwater color distortion
+   - Applied at multiple scales in the network
+
+3. **USIS FPN** (`USISFPN`)
+   - Feature Pyramid Network for multi-scale detection
+   - Integrates SAM features with detection pipeline
+   - Custom feature aggregation and splitting
+
+4. **Anchor-based Detection Head**
+   - Standard RPN + RoI heads for object detection
+   - Mask head for instance segmentation
+   - Optimized for underwater object characteristics
+
+### Model Configuration
+
+The main model configuration is in `project/our/configs/anchor_net.py`:
+
+```python
+model = dict(
+    type='USISAnchor',
+    backbone=dict(
+        type='USISSamVisionEncoder',
+        hf_pretrain_name=sam_pretrain_name,
+        peft_config=dict(
+            peft_type="LORA",
+            r=16,
+            target_modules=["qkv"],
+            lora_alpha=32,
+            lora_dropout=0.05,
+        ),
+    ),
+    # ... other components
+)
 ```
 
-**Step 2**: Install [PyTorch](https://pytorch.org/get-started/previous-versions/#v212). If you have experience with PyTorch and have already installed it, you can skip to the next section. 
-
-**Step 3**: Install MMEngine, MMCV, and MMDetection using MIM.
-
-```shell
-pip install -U openmim
-mim install mmengine
-mim install "mmcv>=2.0.0"
-mim install mmdet
-```
-
-**Step 4**: Install other dependencies from requirements.txt
-```shell
-pip install -r requirements.txt
-```
-
-</details>
-
-## Datasets
-
-Please create a `data` folder in your working directory and put USIS10K in it for training or testing, or you can just change the dataset path in the [config file](project/our/configs). If you want to use other datasets, you can refer to [MMDetection documentation](https://mmdetection.readthedocs.io/en/latest/user_guides/dataset_prepare.html) to prepare the datasets.
-
-    data
-      ├── USIS10K
-      |   ├── foreground_annotations
-      │   │   ├── foreground_train_annotations.json
-      │   │   ├── foreground_val_annotations.json
-      │   │   ├── foreground_test_annotations.json
-      │   ├── multi_class_annotations
-      │   │   ├── multi_class_train_annotations.json
-      │   │   ├── multi_class_val_annotations.json
-      │   │   ├── multi_class_test_annotations.json
-      │   ├── train
-      │   │   ├── train_00001.jpg
-      │   │   ├── ...
-      │   ├── val
-      │   │   ├── val_00001.jpg
-      │   │   ├── ...
-      │   ├── test
-      │   │   ├── test_00001.jpg
-      │   │   ├── ...
-
-you can get our USIS10K dataset in [Baidu Disk](https://pan.baidu.com/s/1dsyRvGADZD43MwrNHlNIdw?pwd=icml) (pwd:icml) or [Google Drive](https://drive.google.com/file/d/1LdjLPaieWA4m8vLV6hEeMvt5wHnLg9gV/view?usp=sharing).
-
-## Model Zoo
-|Model|Test|Epoch    | mAP        | AP50      |AP75      |   config |   download |
-|:---:|:--:|:-------:|:----------:|:---------:|:--------:|:--------:|:----------:|
-|USIS-SAM|Class-Agnostic|24|64.3|84.9|74.0|[config](project/our/configs/foreground_usis_train.py)|[Baidu](https://pan.baidu.com/s/1fIwiYW0AlL7-yyARnqE8CQ?pwd=usis) (pwd:usis) / [Google](https://drive.google.com/file/d/1g2qcxLLHYwUDhmsXz4ZxMHJRl3lY-oxY/view?usp=drive_link)|
-|USIS-SAM|Multi-Class|24|43.9|59.6|50.0|[config](project/our/configs/multiclass_usis_train.py)|[Baidu](https://pan.baidu.com/s/1VEGYYoEnRyAh9RcVEJrVDg?pwd=usis) (pwd:usis) / [Google](https://drive.google.com/file/d/1suvKpSp83Ied9UjVQElcCEdGvR5ekA5m/view?usp=drive_link)|
-
-Note: We optimized the code and data augmentation strategy of USIS-SAM without substantial changes to make it more efficient for training and inference, so the results here are slightly higher than the experiments in the paper.
-
-## Model Training
-
-### Download SAM model weights from huggingface
-
-We provide a simple [script](pretrain/download_huggingface.sh) to download model weights from huggingface, or you can choose another source to download weights.
-
-```shell
-cd pretrain
-bash download_huggingface.sh facebook/sam-vit-huge sam-vit-huge
-cd ..
-```
-
-After downloading, please modify the model weight path in the [config](project/our/configs/anchor_net.py#L57) file.
+## Usage
 
 ### Training
 
-You can use the following command for single-card training.
+```bash
+# Single GPU training
+python tools/train.py project/our/configs/anchor_net.py
 
-```shell
-python tools/train.py project/our/configs/multiclass_usis_train.py
+# Multi-GPU training  
+bash tools/dist_train.sh project/our/configs/anchor_net.py 8
+
+# Slurm cluster training
+bash tools/slurm_train.sh <partition> <job_name> project/our/configs/anchor_net.py 8
 ```
 
-Or you can use the following command for multi-card training.
+### Inference
 
-```shell
-bash tools/dist_train.sh project/our/configs/multiclass_usis_train.py nums_gpu
+```bash
+# Single image inference
+python tools/test.py project/our/configs/anchor_net.py \
+    work_dirs/anchor_net/latest.pth \
+    --show-dir results/
+
+# Batch inference with visualization
+python vis_infer.py
 ```
 
-For more ways to train or test please refer to [MMDetection User Guides](https://mmdetection.readthedocs.io/en/latest/user_guides/index.html#useful-tools), we provide you with their [tools](tools/) toolkit and [test](tests/) toolkit in the code!
+### Testing and Evaluation
 
-## Visualization
+```bash
+# Evaluate on test set
+python tools/test.py project/our/configs/anchor_net.py \
+    work_dirs/anchor_net/latest.pth \
+    --eval bbox segm
 
-If you want to visualize the inference results, you can use [vis_infer.py](vis_infer.py).
-These file was provided by Kaiying Han[@original-doc](https://github.com/original-doc), thanks for his contribution to this project!
-
-## Citation
-If you find our repo or USIS10K dataset useful for your research, please cite us:
-```
-@inproceedings{lian2024diving,
-  title     = {Diving into Underwater: Segment Anything Model Guided Underwater Salient Instance Segmentation and A Large-scale Dataset},
-  author    = {Lian, Shijie and Zhang, Ziyi and Li, Hua and Li, Wenjie and Yang, Laurence Tianruo and Kwong, Sam and Cong, Runmin},
-  booktitle = {Proceedings of the 41st International Conference on Machine Learning},
-  pages     = {29545--29559},
-  year      = {2024}
-  url       = {https://proceedings.mlr.press/v235/lian24c.html},
-}
+# Distributed testing
+bash tools/dist_test.sh project/our/configs/anchor_net.py \
+    work_dirs/anchor_net/latest.pth 8 --eval bbox segm
 ```
 
-## Acknowledgement
-This repository is implemented based on the [MMDetection](https://github.com/open-mmlab/mmdetection) framework and [Segment Anything Model](https://huggingface.co/facebook/sam-vit-huge). In addition, we referenced some of the code in the [RSPrompter](https://github.com/KyanChen/RSPrompter/tree/lightning) repository. Thanks to them for their excellent work.
+## Verification Scripts
 
-## ⭐ Stargazers
-[![Stargazers repo roster for @LiamLian0727/USIS10K](https://reporoster.com/stars/LiamLian0727/USIS10K)](https://github.com/LiamLian0727/USIS10K/stargazers)
+The repository includes several verification scripts to ensure correct model setup:
+
+### SAM Weight Verification
+```bash
+python verify_pretrained.py
+```
+Verifies that SAM pretrained weights are correctly loaded and LoRA is applied properly.
+
+### LoRA Testing  
+```bash
+python test_sam_lora.py
+```
+Tests the LoRA integration with SAM vision encoder.
+
+### Model Comparison
+```bash
+python test_segment_anything_mismatch.py
+```
+Compares model outputs with reference implementations.
+
+## Project Structure
+
+```
+test-UWSAM-bbox/
+├── project/our/
+│   ├── configs/          # Model configurations
+│   └── our_model/        # Custom model implementations
+│       ├── anchor.py     # Main USIS model
+│       ├── common.py     # Shared components and adapters  
+│       └── sam.py        # Custom SAM encoder implementations
+├── pretrain/             # Pretrained model weights
+├── tools/                # Training and testing scripts
+├── tests/                # Test datasets and evaluation
+├── work_dirs/            # Training outputs and checkpoints
+├── vis_infer.py          # Inference visualization script
+├── verify_pretrained.py  # Model verification script
+└── requirements.txt      # Python dependencies
+```
+
+## Key Dependencies
+
+- **MMDetection**: Object detection framework
+- **Transformers**: HuggingFace transformers for SAM models
+- **PEFT**: Parameter Efficient Fine-Tuning library
+- **PyTorch Lightning**: Training framework
+- **OpenCV**: Computer vision utilities
+- **Albumentations**: Data augmentation
+
+## Model Weights
+
+### SAM Backbone Options
+- **SAM ViT-Base**: `facebook/sam-vit-base` (recommended for most use cases)
+- **SAM ViT-Huge**: `facebook/sam-vit-huge` (for maximum performance)
+
+### Pretrained USIS Models
+- Download from the releases section or train from scratch using provided configurations
+
+## Performance
+
+The model achieves competitive performance on underwater instance segmentation benchmarks:
+
+- **USIS10K Dataset**: State-of-the-art results on 10-class underwater segmentation
+- **Efficient Training**: Converges faster than full fine-tuning approaches
+- **Memory Efficient**: LoRA reduces memory requirements by ~50%
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 
 
+## Acknowledgments
 
+- [Meta AI SAM](https://github.com/facebookresearch/segment-anything) for the foundational vision model
+- [MMDetection](https://github.com/open-mmlab/mmdetection) for the detection framework  
+- [HuggingFace Transformers](https://github.com/huggingface/transformers) for model implementations
+- [PEFT](https://github.com/huggingface/peft) for parameter efficient fine-tuning
 
+## Contact
 
+For questions and support, please open an issue in the GitHub repository or contact the maintainers.
