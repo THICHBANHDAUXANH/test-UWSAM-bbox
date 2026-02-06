@@ -1,0 +1,4 @@
+huggingface-cli download UIIS10K/UIIS10K \
+  --repo-type dataset \
+  --local-dir UIIS10K \
+  --local-dir-use-symlinks False
