@@ -302,7 +302,7 @@ test_cfg = dict(type='TestLoop')
 
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=1e-4, weight_decay=0.05),
+    optimizer=dict(type='AdamW', lr=2e-4, weight_decay=5e-2),
 )
 
 param_scheduler = [
@@ -311,13 +311,13 @@ param_scheduler = [
         start_factor=0.001,
         by_epoch=False,
         begin=0,
-        end=500),
+        end=50),
     dict(
         type='MultiStepLR',
         begin=0,
         end=24,
         by_epoch=True,
-        milestones=[16, 22],
+        milestones=[15, 21],
         gamma=0.1),
 ]
 
