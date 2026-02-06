@@ -154,28 +154,6 @@ bash tools/dist_test.sh project/our/configs/anchor_net.py \
     work_dirs/anchor_net/latest.pth 8 --eval bbox segm
 ```
 
-## Verification Scripts
-
-The repository includes several verification scripts to ensure correct model setup:
-
-### SAM Weight Verification
-```bash
-python verify_pretrained.py
-```
-Verifies that SAM pretrained weights are correctly loaded and LoRA is applied properly.
-
-### LoRA Testing  
-```bash
-python test_sam_lora.py
-```
-Tests the LoRA integration with SAM vision encoder.
-
-### Model Comparison
-```bash
-python test_segment_anything_mismatch.py
-```
-Compares model outputs with reference implementations.
-
 ## Project Structure
 
 ```
@@ -191,7 +169,6 @@ test-UWSAM-bbox/
 ├── tests/                # Test datasets and evaluation
 ├── work_dirs/            # Training outputs and checkpoints
 ├── vis_infer.py          # Inference visualization script
-├── verify_pretrained.py  # Model verification script
 └── requirements.txt      # Python dependencies
 ```
 
@@ -217,28 +194,10 @@ test-UWSAM-bbox/
 
 The model achieves competitive performance on underwater instance segmentation benchmarks:
 
-- **USIS10K Dataset**: State-of-the-art results on 10-class underwater segmentation
+- **UIIS10K Dataset**: State-of-the-art results on 10-class underwater segmentation
 - **Efficient Training**: Converges faster than full fine-tuning approaches
 - **Memory Efficient**: LoRA reduces memory requirements by ~50%
 
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 
-
-## Acknowledgments
-
-- [Meta AI SAM](https://github.com/facebookresearch/segment-anything) for the foundational vision model
-- [MMDetection](https://github.com/open-mmlab/mmdetection) for the detection framework  
-- [HuggingFace Transformers](https://github.com/huggingface/transformers) for model implementations
-- [PEFT](https://github.com/huggingface/peft) for parameter efficient fine-tuning
-
-## Contact
-
-For questions and support, please open an issue in the GitHub repository or contact the maintainers.
 
