@@ -65,7 +65,7 @@ The model is trained to detect and segment 10 underwater object categories:
 4. **Download SAM pretrained weights**
    ```bash
    cd pretrain
-   bash download_huggingface.sh
+   bash download_huggingface.sh facebook/sam-vit-huge sam-vit-huge
    ```
 
 ## Model Architecture
@@ -241,3 +241,4 @@ The model achieves competitive performance on underwater instance segmentation b
 ## Contact
 
 For questions and support, please open an issue in the GitHub repository or contact the maintainers.
+
